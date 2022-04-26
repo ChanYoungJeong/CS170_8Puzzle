@@ -1,8 +1,8 @@
 #include "State.h"
 
 //Node Functions
-Node::Node(int size, const std::vector<int>& arr) 
-	: m_size(size) 
+Node::Node(int dep, const std::vector<int>& arr) 
+	: Current_Depth(dep) 
 {
 		Current_State = arr;
 
@@ -30,7 +30,7 @@ int Node::find_empty_tile() {
 void State::Get_Initial_Node(NODE* node) {
 	head = node;
 	head->Current_Depth = depth;
-	open_list.push_back(head);
+	open_list.push(head);
 }
 
 void State::Print_Node(NODE* node) {
@@ -57,6 +57,7 @@ bool State::Find_Goal_Node(NODE* node)
 
 void State::Print_All_State(NODE* node) {
 
+	node->next = NULL;
 	while (node != head)
 	{
 		node->prev->next = node;
@@ -65,6 +66,7 @@ void State::Print_All_State(NODE* node) {
 
 	while (node != NULL)
 	{
+		std::cout << "DPETH : " << node->Current_Depth << std::endl;
 		Print_Node(node);
 		node = node->next;
 	}
@@ -74,23 +76,23 @@ void State::Print_All_State(NODE* node) {
 void State::Create_Node() {
 
 	int Empty_Tile;
-	NODE* temp = new NODE();
-	depth++;
-	
-	for (int j = 0; j < open_list.size(); j++) {
-		temp->Current_State = open_list.front()->Current_State;
-		Empty_Tile = open_list.front()->find_empty_tile();
+	int temp_depth;
+	int list_size = open_list.size();
+
+
+	for (int j = 0; j < list_size; j++) {
+		//temp->Current_State = open_list.front()->Current_State;
+		NODE* temp = new NODE(open_list.top()->Current_Depth, open_list.top()->Current_State);
+		temp_depth = temp->Current_Depth + 1;
+		Empty_Tile = temp->find_empty_tile();
 
 		//std::cout << NeighbourMap.at(Empty_Tile).size() << std::endl;
 
 		for (int i = 0; i < NeighbourMap.at(Empty_Tile).size(); i++)
 		{
-			NODE* Next_Node = new NODE();
-			Next_Node->Current_State = temp->Current_State;
+			NODE* Next_Node = new NODE(temp_depth, temp->Current_State);
 			Next_Node->swap_index(Empty_Tile, NeighbourMap.at(Empty_Tile)[i]);
-			Next_Node->Current_Depth = depth;
-			Next_Node->prev = open_list.front();
-
+			Next_Node->prev = open_list.top();
 
 			if (!Find_Repeated_Node(Next_Node))
 			{
@@ -99,28 +101,32 @@ void State::Create_Node() {
 					std::cout << "Find Goal" << std::endl;
 					Print_All_State(Next_Node);
 					status = true;
-					break;
+					return;
 				}
 				else {
-					open_list.push_back(Next_Node);
+					open_list.push(Next_Node);
 				}
+			}
+			else {
+				delete Next_Node;
 			}
 
 		}
-		close_list.push_back(open_list.front());
-		open_list.erase(open_list.begin());
+		close_list.insert(open_list.top()->Current_State);
+		open_list.pop();
+
+		
 	}
 }
 
 bool State::Find_Repeated_Node(NODE* node)
 {
-	for (int i = 0; i < close_list.size(); i++)
+	auto iter = close_list.find(node->Current_State);
+	if (iter != close_list.end())
 	{
-			if (node->Current_State == close_list[i]->Current_State)
-			{
-				return true;
-			}
+		return true;
 	}
+
 	return false;
 }
 
