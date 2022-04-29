@@ -2,7 +2,7 @@
 
 //Node Functions
 Node::Node(int Current_Depth, const std::vector<int>& arr)
-	: depth(Current_Depth), Cmp_Cost(0)
+	: depth(Current_Depth), Cmp_Cost(0), next(NULL)
 {
 		Current_State = arr;
 
@@ -67,7 +67,8 @@ void State::Print_All_State(NODE* node) {
 
 	while (node != NULL)
 	{
-		std::cout << "DPETH : " << node->Cmp_Cost - node->depth << std::endl;
+		std::cout << "Heuristic cost : " << node->Cmp_Cost - node->depth << std::endl;
+		std::cout << "Depth cost : " << node->depth << std::endl;
 		Print_Node(node);
 		depth++;
 		node = node->next;
@@ -84,17 +85,19 @@ void State::Uniform_Search() {
 
 	for (int j = 0; j < list_size; j++) {
 		//temp->Current_State = open_list.front()->Current_State;
-		NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State);
-		temp_depth = temp->depth + 1;
-		Empty_Tile = temp->find_empty_tile();
+		Node* Current_Node = open_list.top();
+		//NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State);
+		temp_depth = Current_Node->depth + 1;
+		Empty_Tile = Current_Node->find_empty_tile();
+		open_list.pop();
 
 		//std::cout << NeighbourMap.at(Empty_Tile).size() << std::endl;
 
 		for (int i = 0; i < NeighbourMap.at(Empty_Tile).size(); i++)
 		{
-			NODE* Next_Node = new NODE(temp_depth, temp->Current_State);
+			NODE* Next_Node = new NODE(temp_depth, Current_Node->Current_State);
 			Next_Node->swap_index(Empty_Tile, NeighbourMap.at(Empty_Tile)[i]);
-			Next_Node->prev = open_list.top();
+			Next_Node->prev = Current_Node;
 			Next_Node->Cmp_Cost = temp_depth;
 			if (!Find_Repeated_Node(Next_Node))
 			{
@@ -107,6 +110,7 @@ void State::Uniform_Search() {
 				}
 				else {
 					open_list.push(Next_Node);
+					close_list.insert(Next_Node->Current_State);
 				}
 			}
 			else {
@@ -115,7 +119,7 @@ void State::Uniform_Search() {
 
 		}
 		close_list.insert(open_list.top()->Current_State);
-		open_list.pop();
+		
 
 		
 	}
@@ -198,17 +202,20 @@ void State::Astar_Misplace_Search() {
 
 	for (int j = 0; j < list_size; j++) {
 
-		NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State); //copy the top Node in Open_list
-		temp_depth = temp-> depth + 1;
-		Empty_Tile = temp->find_empty_tile();
+		//NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State); //copy the top Node in Open_list
+
+		Node* Current_Node = open_list.top();
+		temp_depth = Current_Node-> depth + 1;
+		Empty_Tile = Current_Node->find_empty_tile();
 		std::vector<int> temp_arr;
 		temp_arr = Find_Adjacent_Tile(Empty_Tile);
+		open_list.pop();
 
 		for (int i = 0; i < temp_arr.size(); i++) //Get Adjcaent Tile of EmptyTile
 		{
-			NODE* Next_Node = new NODE(temp_depth, temp->Current_State);
+			NODE* Next_Node = new NODE(temp_depth, Current_Node->Current_State);
 			Next_Node->swap_index(Empty_Tile, temp_arr[i]);
-			Next_Node->prev = open_list.top();
+			Next_Node->prev = Current_Node;
 			
 			misplace_tile = Misplace_Tile_Calculator(Next_Node->Current_State);
 			Next_Node->Cmp_Cost = misplace_tile + temp_depth;
@@ -225,6 +232,7 @@ void State::Astar_Misplace_Search() {
 				}
 				else {
 					open_list.push(Next_Node);
+					close_list.insert(Next_Node->Current_State);
 				}
 			}
 			else {
@@ -233,7 +241,7 @@ void State::Astar_Misplace_Search() {
 
 		}
 		close_list.insert(open_list.top()->Current_State);
-		open_list.pop();
+		
 
 
 	}
@@ -252,29 +260,30 @@ int State::Euclidean_Distance(const std::vector<int> current_state)
 
 int State::Compare_Tile_Position(int Tile_Value, int Tile_Index) 
 {
-	int result = 0;
-	int divide = 0;
-	int remainder = 0;
-	divide = Tile_Index / 3;
-	remainder = Tile_Index % 3;
-	result = divide + remainder;
-	int Actual_Index = 0;
+	int Tile_X = 0;
+	int Tile_Y = 0;
+	int Goal_X = 0;
+	int Goal_Y = 0;
+
+	Tile_X = Tile_Index % 3;
+	Tile_Y = Tile_Index / 3;
+	
 
 	for (int i = 0; goal_vector.size(); i++)
 	{
 		if (Tile_Value == goal_vector[i])
 		{
-			divide = i / 3;
-			remainder = i % 3;
-			Actual_Index = divide + remainder;
+			Goal_X = i % 3;
+			Goal_Y = i / 3;
 			break;
 		}
 	}
 	
-	return abs(Actual_Index - result);
+	return (abs(Tile_X - Goal_X) + abs(Tile_Y - Goal_Y));
 }
 
 void State::Astar_Euclidean_Distance_Search() {
+
 
 	int Empty_Tile;
 	int temp_depth;
@@ -282,20 +291,22 @@ void State::Astar_Euclidean_Distance_Search() {
 	int adjacet_tile;
 	int list_size = open_list.size();
 
-
 	for (int j = 0; j < list_size; j++) {
 
-		NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State); //copy the top Node in Open_list
-		temp_depth = temp->depth + 1;
-		Empty_Tile = temp->find_empty_tile();
-		std::vector<int> temp_arr;
-		temp_arr = Find_Adjacent_Tile(Empty_Tile);
+		//NODE* temp = new NODE(open_list.top()->depth, open_list.top()->Current_State); //copy the top Node in Open_list
 
-		for (int i = 0; i < temp_arr.size(); i++) //Get Adjcaent Tile of EmptyTile
+		Node* Current_Node = open_list.top();
+		temp_depth = Current_Node->depth + 1;
+		Empty_Tile = Current_Node->find_empty_tile();
+		std::vector<int> temp_arr;
+		temp_arr = Find_Adjacent_Tile(Empty_Tile); //Get Adjcaent Tile of EmptyTile
+		open_list.pop();
+
+		for (int i = 0; i < temp_arr.size(); i++) 
 		{
-			NODE* Next_Node = new NODE(temp_depth, temp->Current_State);
+			NODE* Next_Node = new NODE(temp_depth, Current_Node->Current_State);
 			Next_Node->swap_index(Empty_Tile, temp_arr[i]);
-			Next_Node->prev = open_list.top();
+			Next_Node->prev = Current_Node;
 
 			misplace_tile = Euclidean_Distance(Next_Node->Current_State);
 			Next_Node->Cmp_Cost = misplace_tile + temp_depth;
@@ -310,8 +321,10 @@ void State::Astar_Euclidean_Distance_Search() {
 					status = true;
 					return;
 				}
+				
 				else {
 					open_list.push(Next_Node);
+					close_list.insert(Next_Node->Current_State);
 				}
 			}
 			else {
@@ -320,8 +333,7 @@ void State::Astar_Euclidean_Distance_Search() {
 
 		}
 		close_list.insert(open_list.top()->Current_State);
-		open_list.pop();
-
+		
 
 	}
 }
